@@ -129,9 +129,6 @@ def _missing_deps() -> list[str]:
 
 def _bootstrap():
     """Ensure we are running inside the project venv with all deps installed."""
-    # ── Fast path: sentinel file present means deps are already installed ──
-    if os.path.isfile(BOOTSTRAP_SENTINEL):
-        return
     # ── Step 1: re-exec into .venv if not already inside it ────────────────
     if not _in_project_venv():
         _ensure_venv()
@@ -141,6 +138,10 @@ def _bootstrap():
             print(f"[paper-fetcher] Venv python not found at {venv_py}")
             sys.exit(1)
         os.execv(venv_py, [venv_py] + sys.argv)
+
+    # ── Fast path: sentinel file present means deps are already installed ──
+    if os.path.isfile(BOOTSTRAP_SENTINEL):
+        return
 
     # ── Step 2: install any missing packages ───────────────────────────────
     missing = _missing_deps()
