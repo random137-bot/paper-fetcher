@@ -12,6 +12,7 @@ import os
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 VENV_DIR = os.path.join(PROJECT_ROOT, ".venv")
+BOOTSTRAP_SENTINEL = os.path.join(VENV_DIR, ".deps-installed")
 
 # CWD when the skill was launched (e.g. where Claude Code was started).
 # Used to save papers relative to the user's working directory rather than
@@ -71,6 +72,13 @@ def _ensure_config():
         print("[paper-fetcher] Created config.yaml from config.example.yaml — edit it to customize settings.")
 
 
+def _write_sentinel():
+    """Create the sentinel file so future runs skip the dep check entirely."""
+    os.makedirs(VENV_DIR, exist_ok=True)
+    with open(BOOTSTRAP_SENTINEL, "w") as f:
+        f.write("ok\n")
+
+
 def _load_pip_mirror() -> str | None:
     """Read pip mirror from config.yaml (if set) without requiring yaml dep."""
     _ensure_config()
@@ -101,10 +109,9 @@ def _install_deps(missing: list[str]):
         pip_cmd += ["-i", mirror]
     pip_cmd += missing
 
-    result = subprocess.run(pip_cmd, capture_output=True, text=True, timeout=120)
+    result = subprocess.run(pip_cmd, timeout=120)
     if result.returncode != 0:
-        print("[paper-fetcher] pip install failed:")
-        print(result.stderr)
+        print("[paper-fetcher] pip install failed (see output above)")
         sys.exit(1)
 
 
@@ -122,6 +129,9 @@ def _missing_deps() -> list[str]:
 
 def _bootstrap():
     """Ensure we are running inside the project venv with all deps installed."""
+    # ── Fast path: sentinel file present means deps are already installed ──
+    if os.path.isfile(BOOTSTRAP_SENTINEL):
+        return
     # ── Step 1: re-exec into .venv if not already inside it ────────────────
     if not _in_project_venv():
         _ensure_venv()
@@ -135,6 +145,7 @@ def _bootstrap():
     # ── Step 2: install any missing packages ───────────────────────────────
     missing = _missing_deps()
     if not missing:
+        _write_sentinel()
         return
 
     print(f"[paper-fetcher] Installing missing dependencies: {', '.join(missing)}")
@@ -146,6 +157,7 @@ def _bootstrap():
         sys.exit(1)
 
     print("[paper-fetcher] Dependencies installed. Running your request...")
+    _write_sentinel()
 
 
 # ---------------------------------------------------------------------------
