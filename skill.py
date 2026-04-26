@@ -37,8 +37,15 @@ _REQUIRED_IMPORTS = {
 
 
 def _in_project_venv() -> bool:
-    """Return True if already running inside the project's .venv."""
-    return os.path.realpath(sys.executable) == os.path.realpath(_venv_python())
+    """Return True if already running inside the project's .venv.
+
+    Uses sys.prefix rather than comparing os.path.realpath on the binaries.
+    python3 -m venv creates .venv/bin/python as a symlink back to the original
+    Python, so realpath resolves both to the same file -- a false positive.
+    sys.prefix inside a venv points to the venv directory itself, which is
+    unambiguous.
+    """
+    return os.path.realpath(sys.prefix) == os.path.realpath(VENV_DIR)
 
 
 def _venv_python() -> str:
@@ -49,9 +56,20 @@ def _venv_python() -> str:
 
 
 def _ensure_venv():
-    """Create the project venv if it does not exist yet."""
-    if os.path.isdir(VENV_DIR):
+    """Create or validate the project venv.
+
+    Re-creates the venv if the directory exists but the python binary is missing
+    (e.g. a previous venv creation was interrupted).
+    """
+    venv_py = _venv_python()
+    if os.path.isdir(VENV_DIR) and os.path.isfile(venv_py):
         return
+
+    if os.path.isdir(VENV_DIR):
+        print(f"[paper-fetcher] Venv directory exists but python binary missing, re-creating ...")
+        import shutil
+        shutil.rmtree(VENV_DIR, ignore_errors=True)
+
     print(f"[paper-fetcher] Creating virtual environment at {VENV_DIR} ...")
     result = subprocess.run(
         [sys.executable, "-m", "venv", VENV_DIR],
@@ -109,9 +127,20 @@ def _install_deps(missing: list[str]):
         pip_cmd += ["-i", mirror]
     pip_cmd += missing
 
-    result = subprocess.run(pip_cmd, timeout=120)
+    try:
+        result = subprocess.run(pip_cmd, timeout=120)
+    except subprocess.TimeoutExpired:
+        print("[paper-fetcher] pip install timed out after 120 s")
+        if not mirror:
+            print("[paper-fetcher] Tip: set 'pip_mirror' in config.yaml to use a faster PyPI mirror")
+            print("[paper-fetcher]   e.g. pip_mirror: https://pypi.tuna.tsinghua.edu.cn/simple")
+        else:
+            print(f"[paper-fetcher] Current mirror: {mirror} -- try a different one or check your network")
+        sys.exit(1)
     if result.returncode != 0:
         print("[paper-fetcher] pip install failed (see output above)")
+        if not mirror:
+            print("[paper-fetcher] Tip: set 'pip_mirror' in config.yaml to use a faster PyPI mirror")
         sys.exit(1)
 
 
