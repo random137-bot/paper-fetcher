@@ -8,7 +8,7 @@ from core.models import TopicInfo
 
 
 def run(args):
-    config = load_config(Path("config.yaml") if Path("config.yaml").exists() else None)
+    config = load_config()
     base_dir = Path(config["storage"]["base_dir"])
 
     sources = args.sources.split(",") if args.sources else ["semantic", "arxiv", "scholar"]

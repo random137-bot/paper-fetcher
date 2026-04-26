@@ -61,6 +61,8 @@ def test_index_roundtrip():
     with tempfile.TemporaryDirectory() as tmp:
         base = Path(tmp)
         save_index(base, index)
+        # load_index filters out entries whose topic directory doesn't exist
+        (base / "test-topic").mkdir()
         loaded = load_index(base)
 
         assert "test-topic" in loaded

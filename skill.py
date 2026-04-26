@@ -13,6 +13,11 @@ import os
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 VENV_DIR = os.path.join(PROJECT_ROOT, ".venv")
 
+# CWD when the skill was launched (e.g. where Claude Code was started).
+# Used to save papers relative to the user's working directory rather than
+# the skill's installation path when invoked by an agent.
+_LAUNCH_CWD = os.environ.get("PAPER_FETCHER_CWD") or os.getcwd()
+
 # ---------------------------------------------------------------------------
 # Bootstrap: ensure required packages are installed inside a project-local
 # virtual environment (venv), avoiding any dependency on conda or global pip.
@@ -32,8 +37,7 @@ _REQUIRED_IMPORTS = {
 
 def _in_project_venv() -> bool:
     """Return True if already running inside the project's .venv."""
-    venv = os.environ.get("VIRTUAL_ENV", "")
-    return os.path.realpath(venv) == os.path.realpath(VENV_DIR)
+    return os.path.realpath(sys.executable) == os.path.realpath(_venv_python())
 
 
 def _venv_python() -> str:
@@ -57,8 +61,19 @@ def _ensure_venv():
         sys.exit(1)
 
 
+def _ensure_config():
+    """Auto-create config.yaml from config.example.yaml on first run."""
+    config = os.path.join(PROJECT_ROOT, "config.yaml")
+    example = os.path.join(PROJECT_ROOT, "config.example.yaml")
+    if not os.path.exists(config) and os.path.exists(example):
+        import shutil
+        shutil.copy2(example, config)
+        print("[paper-fetcher] Created config.yaml from config.example.yaml — edit it to customize settings.")
+
+
 def _load_pip_mirror() -> str | None:
     """Read pip mirror from config.yaml (if set) without requiring yaml dep."""
+    _ensure_config()
     config_path = os.path.join(PROJECT_ROOT, "config.yaml")
     if not os.path.exists(config_path):
         return None
@@ -178,7 +193,13 @@ def run_cli(action: str, topic: str | None, extra_args: list[str] | None = None)
     # Skill invocations are non-TTY, so pass --all for download to skip interactive selection
     if action == "download":
         cmd.append("--all")
-    subprocess.run(cmd, cwd=PROJECT_ROOT)
+    env = os.environ.copy()
+    env["PAPER_FETCHER_CWD"] = _LAUNCH_CWD
+    try:
+        subprocess.run(cmd, cwd=PROJECT_ROOT, env=env, timeout=120)
+    except subprocess.TimeoutExpired:
+        print(f"[paper-fetcher] Timeout: {action} did not complete within 120 s")
+        print("[paper-fetcher] Tip: Google Scholar is often rate-limited. Try '--sources semantic,arxiv'")
 
 
 def main():
@@ -216,7 +237,19 @@ def main():
 
     # Get user input from command line or stdin
     if len(sys.argv) > 1:
-        user_input = " ".join(sys.argv[1:])
+        args = sys.argv[1:]
+
+        # Detect CLI-style invocation with flags like --topic / --merge-into.
+        # These are passed through as extra_args to the CLI subprocess so the
+        # agent can use natural-language and CLI-style commands interchangeably.
+        if len(args) >= 2 and args[0] in ("search", "download", "list") and args[1].startswith("--"):
+            action = args[0]
+            extra_args = args[1:]
+            print(f"[paper-fetcher] {action}: {extra_args}")
+            run_cli(action, None, extra_args)
+            return
+
+        user_input = " ".join(args)
     else:
         user_input = sys.stdin.read().strip()
 

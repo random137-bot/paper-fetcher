@@ -39,7 +39,7 @@ def _resolve_topic_dir(base_dir: Path, topic_input: str) -> Path | None:
 
 
 def run(args):
-    config = load_config(Path("config.yaml") if Path("config.yaml").exists() else None)
+    config = load_config()
     base_dir = Path(config["storage"]["base_dir"])
 
     topic_dir = _resolve_topic_dir(base_dir, args.topic)

@@ -1,42 +1,54 @@
 # Paper Fetcher
 
-[English](README.md) | [中文](README.zh.md)
+<p>
+  <a href="https://www.python.org/downloads/"><img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
+  <a href="https://claude.ai/code"><img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-ready-black?logo=anthropic"></a>
+</p>
 
-Search academic papers across multiple sources and download PDFs — all from natural language in Claude Code.
+> Search academic papers across multiple sources and download PDFs — all from natural language in Claude Code.
+
+[**English**](README.md) | [**中文**](README.zh.md)
+
+---
 
 ## Features
 
 - **Multi-source search** — queries Semantic Scholar API, arXiv, and Google Scholar simultaneously
 - **Smart dedup** — merges results by DOI + title + author, keeps the richest version
 - **Auto PDF download** — arXiv direct → Sci-Hub multi-domain fallback → direct URL, with exponential backoff
-- **Topic management** — LLM-guided merging groups related searches together (same technique + same application domain)
+- **Topic management** — LLM-guided merging groups related searches by technique + application domain
 - **Bilingual** — full Chinese (中文) and English query support
 - **Zero-config bootstrap** — auto-creates venv and installs dependencies on first run
+
+---
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.10+
-- [Claude Code](https://claude.ai/code)
+- **Python 3.10+**
+- [**Claude Code**](https://claude.ai/code)
 
-### Install the skill
+### Install as a Claude Code skill
 
 ```bash
-claude skill add paper-fetcher <repo-url>
+claude skill add paper-fetcher https://github.com/random137-bot/paper-fetcher.git
 ```
 
 ### Or run standalone
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/random137-bot/paper-fetcher.git
 cd paper-fetcher
 python3 skill.py help
 ```
 
+---
+
 ## Usage
 
-### Natural language (in Claude Code)
+### In Claude Code (natural language)
 
 ```
 search papers on federated learning
@@ -44,12 +56,13 @@ download papers from my federated learning results
 show my saved topics
 find papers about causal inference
 sci-hub download deep learning papers
+
 搜索机器学习的论文
 下载深度学习相关的论文
 列出已保存的主题
 ```
 
-### Command line
+### From the command line
 
 ```bash
 # Search
@@ -77,6 +90,8 @@ python3 skill.py list
 python3 skill.py help
 ```
 
+---
+
 ## Configuration
 
 Copy `config.example.yaml` to `config.yaml` and customize:
@@ -100,6 +115,8 @@ proxy:
 storage:
   base_dir: ./papers
 ```
+
+---
 
 ## Architecture
 
@@ -129,6 +146,8 @@ Paper Fetcher uses **LLM-guided semantic merging** (not keyword overlap) to deci
 
 See `SKILL.md` for the full decision table.
 
+---
+
 ## Data storage
 
 Results are saved under `./papers/<topic-slug>/`:
@@ -146,6 +165,8 @@ papers/
 └── ...
 ```
 
+---
+
 ## Development
 
 ```bash
@@ -158,6 +179,8 @@ pip install -r requirements.txt  # or let skill.py auto-install
 python3 -m pytest tests/ -v
 ```
 
+---
+
 ## License
 
-MIT
+**MIT** — see [LICENSE](LICENSE).

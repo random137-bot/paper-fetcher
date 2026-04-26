@@ -4,7 +4,7 @@ from core.storage import load_index
 
 
 def run(args):
-    config = load_config(Path("config.yaml") if Path("config.yaml").exists() else None)
+    config = load_config()
     base_dir = Path(config["storage"]["base_dir"])
     index = load_index(base_dir)
 

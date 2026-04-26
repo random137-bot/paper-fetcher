@@ -1,8 +1,16 @@
 # Paper Fetcher
 
-中文 | [English](README.md)
+<p>
+  <a href="https://www.python.org/downloads/"><img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
+  <a href="https://claude.ai/code"><img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-ready-black?logo=anthropic"></a>
+</p>
 
-多源学术论文搜索与 PDF 下载工具，支持自然语言交互（Claude Code）。
+> 多源学术论文搜索与 PDF 下载工具，支持自然语言交互（Claude Code）。
+
+[**中文**](README.zh.md) | [**English**](README.md)
+
+---
 
 ## 功能
 
@@ -13,23 +21,25 @@
 - **中英双语** — 完全支持中文搜索和自然语言查询
 - **零配置启动** — 首次运行自动创建虚拟环境并安装依赖
 
+---
+
 ## 快速开始
 
 ### 前置条件
 
-- Python 3.10+
-- [Claude Code](https://claude.ai/code)
+- **Python 3.10+**
+- [**Claude Code**](https://claude.ai/code)
 
-### 安装 skill
+### 安装为 Claude Code skill
 
 ```bash
-claude skill add paper-fetcher <仓库地址>
+claude skill add paper-fetcher https://github.com/random137-bot/paper-fetcher.git
 ```
 
 ### 或独立运行
 
 ```bash
-git clone <仓库地址>
+git clone https://github.com/random137-bot/paper-fetcher.git
 cd paper-fetcher
 
 # 安装依赖
@@ -39,9 +49,11 @@ pip install -e .
 python3 skill.py help
 ```
 
+---
+
 ## 使用示例
 
-### 自然语言（在 Claude Code 中）
+### 在 Claude Code 中使用自然语言
 
 ```
 搜索机器学习论文
@@ -80,6 +92,8 @@ python3 skill.py list
 python3 skill.py help
 ```
 
+---
+
 ## 架构
 
 ```
@@ -108,6 +122,8 @@ core/
 
 详细决策表见 `SKILL.md`。
 
+---
+
 ## 数据存储
 
 搜索结果保存在 `./papers/<主题目录>/` 下：
@@ -124,6 +140,8 @@ papers/
 │   └── 2024-03-01 U-Net 医学分割.pdf
 └── ...
 ```
+
+---
 
 ## 配置
 
@@ -145,6 +163,8 @@ storage:
   base_dir: ./papers
 ```
 
+---
+
 ## 开发
 
 ```bash
@@ -157,6 +177,8 @@ pip install -e .
 python3 -m pytest tests/ -v
 ```
 
+---
+
 ## 许可
 
-MIT
+**MIT** — 详见 [LICENSE](LICENSE)。
