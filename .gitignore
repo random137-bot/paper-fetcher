@@ -1,0 +1,15 @@
+papers/
+__pycache__/
+*.pyc
+.eggs/
+*.egg-info/
+*.egg-info
+dist/
+build/
+.pytest_cache/
+*.tmp
+.venv/
+.DS_Store
+
+# User config — use config.example.yaml as template
+config.yaml

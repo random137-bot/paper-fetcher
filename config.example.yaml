@@ -1,0 +1,34 @@
+sources:
+  scholar:
+    enabled: true
+    delay_min: 10
+    delay_max: 20
+    cookie_file: ~/.paper-fetcher/scholar.cookies
+  arxiv:
+    enabled: true
+    delay_min: 1
+    delay_max: 3
+  semantic:
+    enabled: true
+    delay_min: 0.5
+    delay_max: 1.5
+    api_key: null  # Optional: get a free key at https://www.semanticscholar.org/product/api#api-key-form
+
+download:
+  scihub_domains:
+    - https://sci-hub.se
+    - https://sci-hub.st
+    - https://sci-hub.ru
+  timeout: 60
+
+# Optional: pip install mirror for faster dependency installation in restricted regions.
+# Example: https://pypi.tuna.tsinghua.edu.cn/simple
+# When unset or null, pip uses the official PyPI index.
+pip_mirror: null
+
+proxy:
+  http: null
+  https: null
+
+storage:
+  base_dir: ./papers
