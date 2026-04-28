@@ -44,16 +44,11 @@ class ProxyManager:
         return proxies if proxies else None
 
     def configure_session(self, session: requests.Session) -> None:
-        """Apply proxy settings to a requests.Session."""
-        if self.free_mode == "on":
-            # Free mode: free proxy for scholarly, static-only for requests.
-            # requests.Session uses static proxy if available.
-            proxies = self._get_static_proxies()
-            if proxies:
-                session.proxies.update(proxies)
-            return
+        """Apply static proxy settings to a requests.Session.
 
-        # "off" or "auto": apply static proxy if configured
+        FreeProxies are managed by scholarly internally and do not apply
+        to raw requests sessions. Only static config proxies are used here.
+        """
         proxies = self._get_static_proxies()
         if proxies:
             session.proxies.update(proxies)
@@ -77,7 +72,6 @@ class ProxyManager:
         if self.free_mode == "off" or self._using_free:
             return
         logger.info("Rate limit detected, switching to free proxy mode")
-        self._using_free = True
         self._enable_scholarly_free_proxy()
 
     def _enable_scholarly_free_proxy(self) -> None:

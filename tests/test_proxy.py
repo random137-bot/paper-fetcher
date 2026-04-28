@@ -9,10 +9,43 @@ def test_proxy_manager_off_mode():
     assert pm.using_free_proxy is False
 
 
-def test_proxy_manager_on_mode_initially_using_free():
+def test_proxy_manager_on_mode_initially_not_using_free():
     config = {"proxy": {"http": None, "https": None, "free_mode": "on"}}
     pm = ProxyManager(config)
     assert pm.using_free_proxy is False  # Will be True after setup_scholarly
+
+
+def test_configure_session_http_only_mirrors_to_https():
+    """When only http proxy is set, https should mirror it."""
+    import requests
+    config = {"proxy": {"http": "http://proxy:8080", "https": None, "free_mode": "off"}}
+    pm = ProxyManager(config)
+    session = requests.Session()
+    pm.configure_session(session)
+    assert session.proxies.get("http") == "http://proxy:8080"
+    assert session.proxies.get("https") == "http://proxy:8080"
+
+
+def test_configure_session_https_only_mirrors_to_http():
+    """When only https proxy is set, http should mirror it."""
+    import requests
+    config = {"proxy": {"http": None, "https": "https://proxy:8443", "free_mode": "off"}}
+    pm = ProxyManager(config)
+    session = requests.Session()
+    pm.configure_session(session)
+    assert session.proxies.get("https") == "https://proxy:8443"
+    assert session.proxies.get("http") == "https://proxy:8443"
+
+
+def test_configure_session_both_proxies_no_mirroring():
+    """When both proxies are set, they should appear as distinct entries."""
+    import requests
+    config = {"proxy": {"http": "http://http-proxy:8080", "https": "https://https-proxy:8443", "free_mode": "off"}}
+    pm = ProxyManager(config)
+    session = requests.Session()
+    pm.configure_session(session)
+    assert session.proxies.get("http") == "http://http-proxy:8080"
+    assert session.proxies.get("https") == "https://https-proxy:8443"
 
 
 def test_proxy_manager_auto_mode():
@@ -48,26 +81,37 @@ def test_configure_session_off_mode_no_proxy():
 
 
 def test_on_rate_limited_switches_to_free_in_auto_mode():
-    config = {"proxy": {"http": None, "https": None, "free_mode": "auto"}}
-    pm = ProxyManager(config)
-    assert pm.using_free_proxy is False
-    pm.on_rate_limited()
-    assert pm.using_free_proxy is True
+    """In auto mode, on_rate_limited should trigger free proxy switch."""
+    with patch("core.proxy.ProxyGenerator") as mock_pg_cls:
+        mock_pg = MagicMock()
+        mock_pg_cls.return_value = mock_pg
+        config = {"proxy": {"http": None, "https": None, "free_mode": "auto"}}
+        pm = ProxyManager(config)
+        assert pm.using_free_proxy is False
+        pm.on_rate_limited()
+        assert pm.using_free_proxy is True
+        mock_pg.FreeProxies.assert_called_once()
 
 
 def test_on_rate_limited_noop_in_off_mode():
-    config = {"proxy": {"http": None, "https": None, "free_mode": "off"}}
-    pm = ProxyManager(config)
-    pm.on_rate_limited()
-    assert pm.using_free_proxy is False
+    with patch("core.proxy.ProxyGenerator") as mock_pg_cls:
+        config = {"proxy": {"http": None, "https": None, "free_mode": "off"}}
+        pm = ProxyManager(config)
+        pm.on_rate_limited()
+        assert pm.using_free_proxy is False
+        mock_pg_cls.assert_not_called()
 
 
 def test_on_rate_limited_noop_when_already_free():
-    config = {"proxy": {"http": None, "https": None, "free_mode": "auto"}}
-    pm = ProxyManager(config)
-    pm.on_rate_limited()  # first call switches
-    pm.on_rate_limited()  # second call should be noop (already free)
-    assert pm.using_free_proxy is True
+    with patch("core.proxy.ProxyGenerator") as mock_pg_cls:
+        mock_pg = MagicMock()
+        mock_pg_cls.return_value = mock_pg
+        config = {"proxy": {"http": None, "https": None, "free_mode": "auto"}}
+        pm = ProxyManager(config)
+        pm.on_rate_limited()  # first call switches
+        pm.on_rate_limited()  # second call should be noop (already free)
+        assert pm.using_free_proxy is True
+        assert mock_pg_cls.call_count == 1  # ProxyGenerator created only once
 
 
 @patch("core.proxy.ProxyGenerator")
