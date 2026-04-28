@@ -196,14 +196,30 @@ def test_scholar_search_without_proxy_manager_backward_compat(mock_search_pubs):
 
 @patch("core.proxy.ProxyGenerator")
 @patch("core.sources.scholar.scholarly.search_pubs")
-def test_scholar_search_rate_limited_switches_proxy(mock_search_pubs, mock_pg):
-    """When search gets rate-limited, proxy switches in auto mode."""
+def test_scholar_search_auto_mode_no_static_uses_free_preemptively(mock_search_pubs, mock_pg):
+    """Auto mode with no static proxy: FreeProxies enabled proactively by setup_scholarly."""
     mock_pg.return_value = MagicMock()
-    mock_search_pubs.side_effect = Exception("HTTP 429 Too Many Requests")
+    mock_search_pubs.return_value = []
     from core.proxy import ProxyManager
     config = {"proxy": {"http": None, "https": None, "free_mode": "auto"}}
     pm = ProxyManager(config)
     source = ScholarSource(delay_min=0, delay_max=0, proxy_manager=pm)
+    source.search("test", max_results=5)
+    assert pm.using_free_proxy is True
+
+
+@patch("core.proxy.ProxyGenerator")
+@patch("core.sources.scholar.scholarly.search_pubs")
+def test_scholar_search_rate_limited_switches_proxy(mock_search_pubs, mock_pg):
+    """When search gets rate-limited with static proxy in auto mode,
+    on_rate_limited() triggers the free proxy switch."""
+    mock_pg.return_value = MagicMock()
+    mock_search_pubs.side_effect = Exception("HTTP 429 Too Many Requests")
+    from core.proxy import ProxyManager
+    config = {"proxy": {"http": "http://static:8080", "https": "http://static:8080", "free_mode": "auto"}}
+    pm = ProxyManager(config)
+    assert pm.using_free_proxy is False
+    source = ScholarSource(delay_min=0, delay_max=0, proxy_manager=pm)
     papers = source.search("test", max_results=5)
     assert papers == []  # graceful fallback
-    assert pm.using_free_proxy is True
+    assert pm.using_free_proxy is True  # on_rate_limited() triggered the switch
