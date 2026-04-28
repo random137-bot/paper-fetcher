@@ -29,6 +29,7 @@ pip_mirror: null
 proxy:
   http: null
   https: null
+  free_mode: auto
 
 storage:
   base_dir: ./papers
