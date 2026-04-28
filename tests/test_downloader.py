@@ -74,9 +74,15 @@ def test_download_skip_existing(mock_stat, mock_mkdir, mock_exists):
     assert result == Path("/tmp/2024-01-01 Existing Paper [10.0_test].pdf")
 
 
+# ---------------------------------------------------------------------------
+# Domain probing tests — patch _probe_domains during construction to avoid
+# real network calls from __init__, then test the method directly.
+# ---------------------------------------------------------------------------
+
 class TestDomainProbing:
     def test_probe_domains_filters_unreachable(self):
-        dl = _Downloader(domains=["https://sci-hub.se", "https://sci-hub.st"], timeout=60)
+        with patch.object(_Downloader, "_probe_domains"):
+            dl = _Downloader(domains=["https://sci-hub.se", "https://sci-hub.st"], timeout=60)
 
         with patch.object(dl.sess, "head") as mock_head:
             mock_head.return_value.status_code = 200
@@ -84,7 +90,8 @@ class TestDomainProbing:
             assert dl._available_domains == ["https://sci-hub.se", "https://sci-hub.st"]
 
     def test_probe_domains_excludes_failed(self):
-        dl = _Downloader(domains=["https://sci-hub.se", "https://sci-hub.st"], timeout=60)
+        with patch.object(_Downloader, "_probe_domains"):
+            dl = _Downloader(domains=["https://sci-hub.se", "https://sci-hub.st"], timeout=60)
 
         with patch.object(dl.sess, "head") as mock_head:
             def side_effect(url, timeout=1):
@@ -99,7 +106,8 @@ class TestDomainProbing:
             assert dl._available_domains == ["https://sci-hub.se"]
 
     def test_probe_domains_all_failed_fallback_to_original(self):
-        dl = _Downloader(domains=["https://sci-hub.se", "https://sci-hub.st"], timeout=60)
+        with patch.object(_Downloader, "_probe_domains"):
+            dl = _Downloader(domains=["https://sci-hub.se", "https://sci-hub.st"], timeout=60)
 
         with patch.object(dl.sess, "head") as mock_head:
             mock_head.return_value.status_code = 503
@@ -107,7 +115,8 @@ class TestDomainProbing:
             assert dl._available_domains == ["https://sci-hub.se", "https://sci-hub.st"]
 
     def test_probe_domains_connection_error_fallback(self):
-        dl = _Downloader(domains=["https://sci-hub.se"], timeout=60)
+        with patch.object(_Downloader, "_probe_domains"):
+            dl = _Downloader(domains=["https://sci-hub.se"], timeout=60)
 
         with patch.object(dl.sess, "head") as mock_head:
             import requests
@@ -121,17 +130,20 @@ class TestDownloaderProxy:
         from core.proxy import ProxyManager
         config = {"proxy": {"http": "http://127.0.0.1:8080", "https": None, "free_mode": "off"}}
         pm = ProxyManager(config)
-        dl = _Downloader(domains=["https://sci-hub.se"], timeout=60, proxy_manager=pm)
+        with patch.object(_Downloader, "_probe_domains"):
+            dl = _Downloader(domains=["https://sci-hub.se"], timeout=60, proxy_manager=pm)
         assert dl.sess.proxies.get("http") == "http://127.0.0.1:8080"
 
     def test_downloader_without_proxy_manager_backward_compat(self):
-        dl = _Downloader(domains=["https://sci-hub.se"], timeout=60)
+        with patch.object(_Downloader, "_probe_domains"):
+            dl = _Downloader(domains=["https://sci-hub.se"], timeout=60)
         assert dl.sess.proxies.get("http") is None
 
 
 class TestTryDomainsWithProbing:
     def test_try_domains_uses_available_domains(self):
-        dl = _Downloader(domains=["https://sci-hub.se", "https://sci-hub.st"], timeout=60)
+        with patch.object(_Downloader, "_probe_domains"):
+            dl = _Downloader(domains=["https://sci-hub.se", "https://sci-hub.st"], timeout=60)
         dl._available_domains = ["https://sci-hub.st"]
 
         with patch.object(dl, "_try_single") as mock_try:
