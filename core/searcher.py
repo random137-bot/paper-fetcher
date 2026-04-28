@@ -178,7 +178,8 @@ def _lookup_doi_crossref(title: str, first_author_last: str = "") -> str | None:
     return None
 
 
-def search(topic: str, sources: list[str] | None = None, max_results: int = 20) -> list[Paper]:
+def search(topic: str, sources: list[str] | None = None, max_results: int = 20,
+           proxy_manager=None) -> list[Paper]:
     if sources is None:
         sources = ["semantic", "arxiv", "scholar"]
 
@@ -201,6 +202,8 @@ def search(topic: str, sources: list[str] | None = None, max_results: int = 20) 
                     .get("semantic", {})
                     .get("api_key")
                 )
+            if src_name == "scholar" and proxy_manager:
+                kwargs["proxy_manager"] = proxy_manager
             instance = cls(**kwargs)
             papers = instance.search(topic, max_results=max_results)
             elapsed = time.monotonic() - t0
