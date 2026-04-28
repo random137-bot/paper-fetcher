@@ -13,3 +13,6 @@ build/
 
 # User config — use config.example.yaml as template
 config.yaml
+
+# Worktree isolation
+.worktrees/
