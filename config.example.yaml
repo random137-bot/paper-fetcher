@@ -29,7 +29,7 @@ pip_mirror: null
 proxy:
   http: null
   https: null
-  free_mode: auto
+  free_mode: auto  # auto | on | off — when to use free proxies for Scholar/requests
 
 storage:
   base_dir: ./papers
