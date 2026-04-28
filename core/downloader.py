@@ -57,7 +57,7 @@ class _Downloader:
         if proxy_manager:
             proxy_manager.configure_session(self.sess)
         self._available_domains = list(domains)
-        self._probe_domains()
+        self._probed = False
 
     def _probe_domains(self) -> None:
         """Probe all configured Sci-Hub domains once per session.
@@ -84,6 +84,12 @@ class _Downloader:
             # All probes failed — keep original list as fallback
             self._available_domains = list(self.domains)
             logger.debug("All domain probes failed, keeping original list")
+
+    def _ensure_probed(self) -> None:
+        """Lazy probe — only runs on first download attempt, not at construction."""
+        if not self._probed:
+            self._probe_domains()
+            self._probed = True
 
     def fetch_pdf(self, paper: Paper, output_dir: Path) -> Optional[Path]:
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -241,6 +247,7 @@ class _Downloader:
 
     def _try_domains(self, query: str, out_path: Path) -> Optional[Path]:
         """Try all configured domains with exponential backoff (up to 3 attempts)."""
+        self._ensure_probed()
         for attempt in range(3):
             for domain in self._available_domains:
                 try:

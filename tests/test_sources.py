@@ -223,3 +223,19 @@ def test_scholar_search_rate_limited_switches_proxy(mock_search_pubs, mock_pg):
     papers = source.search("test", max_results=5)
     assert papers == []  # graceful fallback
     assert pm.using_free_proxy is True  # on_rate_limited() triggered the switch
+
+
+@patch("core.proxy.ProxyGenerator")
+@patch("core.sources.scholar.scholarly.search_pubs")
+def test_scholar_search_network_error_does_not_switch_proxy(mock_search_pubs, mock_pg):
+    """Non-rate-limit errors (e.g. network timeout) should NOT trigger proxy switch."""
+    mock_pg.return_value = MagicMock()
+    mock_search_pubs.side_effect = Exception("Network timeout")
+    from core.proxy import ProxyManager
+    config = {"proxy": {"http": "http://static:8080", "https": "http://static:8080", "free_mode": "auto"}}
+    pm = ProxyManager(config)
+    assert pm.using_free_proxy is False
+    source = ScholarSource(delay_min=0, delay_max=0, proxy_manager=pm)
+    papers = source.search("test", max_results=5)
+    assert papers == []  # graceful fallback
+    assert pm.using_free_proxy is False  # proxy should NOT switch for network errors

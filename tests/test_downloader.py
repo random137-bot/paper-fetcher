@@ -144,12 +144,12 @@ class TestTryDomainsWithProbing:
     def test_try_domains_uses_available_domains(self):
         with patch.object(_Downloader, "_probe_domains"):
             dl = _Downloader(domains=["https://sci-hub.se", "https://sci-hub.st"], timeout=60)
-        dl._available_domains = ["https://sci-hub.st"]
+            dl._available_domains = ["https://sci-hub.st"]
 
-        with patch.object(dl, "_try_single") as mock_try:
-            mock_try.return_value = Path("/fake/out.pdf")
-            result = dl._try_domains("10.0/test", Path("/tmp/out.pdf"))
-            assert result is not None
-            # Should only try the available domain
-            assert mock_try.call_count == 1
-            assert mock_try.call_args[0][0] == "https://sci-hub.st"
+            with patch.object(dl, "_try_single") as mock_try:
+                mock_try.return_value = Path("/fake/out.pdf")
+                result = dl._try_domains("10.0/test", Path("/tmp/out.pdf"))
+                assert result is not None
+                # Should only try the available domain
+                assert mock_try.call_count == 1
+                assert mock_try.call_args[0][0] == "https://sci-hub.st"

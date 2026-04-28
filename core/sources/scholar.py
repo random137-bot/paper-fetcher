@@ -61,5 +61,8 @@ class ScholarSource(BaseSource):
         except Exception as exc:
             logger.warning("Scholar search error: %s", exc)
             if self.proxy_manager:
-                self.proxy_manager.on_rate_limited()
+                # Only trigger proxy switch on rate-limit errors, not all failures
+                msg = str(exc).lower()
+                if any(indicator in msg for indicator in ("429", "rate limit", "too many")):
+                    self.proxy_manager.on_rate_limited()
             return []
