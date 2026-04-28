@@ -164,3 +164,46 @@ def test_scholar_search_error_fallback(mock_search_pubs):
     source = ScholarSource(delay_min=0, delay_max=0)
     papers = source.search("test", max_results=5)
     assert papers == []
+
+
+# --- Scholar proxy integration tests ---
+
+@patch("core.proxy.ProxyGenerator")
+@patch("core.sources.scholar.scholarly.search_pubs")
+def test_scholar_search_with_proxy_manager_setup(mock_search_pubs, mock_pg):
+    """When proxy_manager is set and free_mode=on, search calls FreeProxies."""
+    mock_pg.return_value = MagicMock()
+    mock_search_pubs.return_value = []
+    from core.proxy import ProxyManager
+    config = {"proxy": {"http": None, "https": None, "free_mode": "on"}}
+    pm = ProxyManager(config)
+    source = ScholarSource(delay_min=0, delay_max=0, proxy_manager=pm)
+    source.search("test", max_results=5)
+    assert pm.using_free_proxy is True
+
+
+@patch("core.sources.scholar.scholarly.search_pubs")
+def test_scholar_search_without_proxy_manager_backward_compat(mock_search_pubs):
+    """ScholarSource without proxy_manager works as before."""
+    mock_search_pubs.return_value = [
+        _fake_scholarly_pub("Paper Alpha", ["Smith, J."], 2022, "10.1000/alpha", 15),
+    ]
+    source = ScholarSource(delay_min=0, delay_max=0)
+    papers = source.search("test", max_results=5)
+    assert len(papers) == 1
+    assert papers[0].title == "Paper Alpha"
+
+
+@patch("core.proxy.ProxyGenerator")
+@patch("core.sources.scholar.scholarly.search_pubs")
+def test_scholar_search_rate_limited_switches_proxy(mock_search_pubs, mock_pg):
+    """When search gets rate-limited, proxy switches in auto mode."""
+    mock_pg.return_value = MagicMock()
+    mock_search_pubs.side_effect = Exception("HTTP 429 Too Many Requests")
+    from core.proxy import ProxyManager
+    config = {"proxy": {"http": None, "https": None, "free_mode": "auto"}}
+    pm = ProxyManager(config)
+    source = ScholarSource(delay_min=0, delay_max=0, proxy_manager=pm)
+    papers = source.search("test", max_results=5)
+    assert papers == []  # graceful fallback
+    assert pm.using_free_proxy is True

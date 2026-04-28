@@ -2,13 +2,24 @@ from scholarly import scholarly
 from core.sources.base import BaseSource
 from core.models import Paper
 from datetime import date as dt_date
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ScholarSource(BaseSource):
     name = "scholar"
 
+    def __init__(self, delay_min: float = 10.0, delay_max: float = 20.0,
+                 proxy_manager=None):
+        super().__init__(delay_min, delay_max)
+        self.proxy_manager = proxy_manager
+
     def search(self, topic: str, max_results: int = 20) -> list[Paper]:
         try:
+            if self.proxy_manager:
+                self.proxy_manager.setup_scholarly()
+
             search_query = scholarly.search_pubs(topic)
             papers = []
             for i, pub in enumerate(search_query):
@@ -47,5 +58,8 @@ class ScholarSource(BaseSource):
                 except Exception:
                     continue
             return papers
-        except Exception:
+        except Exception as exc:
+            logger.warning("Scholar search error: %s", exc)
+            if self.proxy_manager:
+                self.proxy_manager.on_rate_limited()
             return []
