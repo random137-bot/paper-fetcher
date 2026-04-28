@@ -2,7 +2,8 @@ from unittest.mock import patch, MagicMock
 from pathlib import Path
 from datetime import date
 from core.models import Paper
-from core.downloader import sanitize_filename, build_filename
+from core.downloader import sanitize_filename, build_filename, _Downloader
+import pytest
 
 
 def test_sanitize_filename():
@@ -71,3 +72,72 @@ def test_download_skip_existing(mock_stat, mock_mkdir, mock_exists):
     p = Paper(title="Existing Paper", date=date(2024, 1, 1), doi="10.0/test")
     result = download(p, Path("/tmp"), domains=["https://sci-hub.se"])
     assert result == Path("/tmp/2024-01-01 Existing Paper [10.0_test].pdf")
+
+
+class TestDomainProbing:
+    def test_probe_domains_filters_unreachable(self):
+        dl = _Downloader(domains=["https://sci-hub.se", "https://sci-hub.st"], timeout=60)
+
+        with patch.object(dl.sess, "head") as mock_head:
+            mock_head.return_value.status_code = 200
+            dl._probe_domains()
+            assert dl._available_domains == ["https://sci-hub.se", "https://sci-hub.st"]
+
+    def test_probe_domains_excludes_failed(self):
+        dl = _Downloader(domains=["https://sci-hub.se", "https://sci-hub.st"], timeout=60)
+
+        with patch.object(dl.sess, "head") as mock_head:
+            def side_effect(url, timeout=1):
+                resp = MagicMock()
+                if "sci-hub.se" in url:
+                    resp.status_code = 200
+                else:
+                    resp.status_code = 503
+                return resp
+            mock_head.side_effect = side_effect
+            dl._probe_domains()
+            assert dl._available_domains == ["https://sci-hub.se"]
+
+    def test_probe_domains_all_failed_fallback_to_original(self):
+        dl = _Downloader(domains=["https://sci-hub.se", "https://sci-hub.st"], timeout=60)
+
+        with patch.object(dl.sess, "head") as mock_head:
+            mock_head.return_value.status_code = 503
+            dl._probe_domains()
+            assert dl._available_domains == ["https://sci-hub.se", "https://sci-hub.st"]
+
+    def test_probe_domains_connection_error_fallback(self):
+        dl = _Downloader(domains=["https://sci-hub.se"], timeout=60)
+
+        with patch.object(dl.sess, "head") as mock_head:
+            import requests
+            mock_head.side_effect = requests.exceptions.ConnectionError("refused")
+            dl._probe_domains()
+            assert dl._available_domains == ["https://sci-hub.se"]
+
+
+class TestDownloaderProxy:
+    def test_downloader_with_proxy_manager_configures_session(self):
+        from core.proxy import ProxyManager
+        config = {"proxy": {"http": "http://127.0.0.1:8080", "https": None, "free_mode": "off"}}
+        pm = ProxyManager(config)
+        dl = _Downloader(domains=["https://sci-hub.se"], timeout=60, proxy_manager=pm)
+        assert dl.sess.proxies.get("http") == "http://127.0.0.1:8080"
+
+    def test_downloader_without_proxy_manager_backward_compat(self):
+        dl = _Downloader(domains=["https://sci-hub.se"], timeout=60)
+        assert dl.sess.proxies.get("http") is None
+
+
+class TestTryDomainsWithProbing:
+    def test_try_domains_uses_available_domains(self):
+        dl = _Downloader(domains=["https://sci-hub.se", "https://sci-hub.st"], timeout=60)
+        dl._available_domains = ["https://sci-hub.st"]
+
+        with patch.object(dl, "_try_single") as mock_try:
+            mock_try.return_value = Path("/fake/out.pdf")
+            result = dl._try_domains("10.0/test", Path("/tmp/out.pdf"))
+            assert result is not None
+            # Should only try the available domain
+            assert mock_try.call_count == 1
+            assert mock_try.call_args[0][0] == "https://sci-hub.st"

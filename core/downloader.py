@@ -47,13 +47,43 @@ def build_filename(paper: Paper) -> str:
 class _Downloader:
     """Internal downloader with a persistent session (reused across calls)."""
 
-    def __init__(self, domains: list[str], timeout: int = 60):
+    def __init__(self, domains: list[str], timeout: int = 60, proxy_manager=None):
         if not domains:
             raise ValueError("domains parameter is required")
         self.domains = domains
         self.timeout = timeout
         self.sess = requests.Session()
         self.sess.headers.update({"User-Agent": _USER_AGENT})
+        if proxy_manager:
+            proxy_manager.configure_session(self.sess)
+        self._available_domains = list(domains)
+        self._probe_domains()
+
+    def _probe_domains(self) -> None:
+        """Probe all configured Sci-Hub domains once per session.
+
+        Tests each domain with a quick HEAD request. Available domains
+        are cached in self._available_domains for the session lifetime.
+        Falls back to the full domain list if all probes fail.
+        """
+        available: list[str] = []
+        for domain in self.domains:
+            try:
+                resp = self.sess.head(domain, timeout=5)
+                if 200 <= resp.status_code < 400:
+                    available.append(domain)
+                    logger.debug("Domain probe OK: %s (%d)", domain, resp.status_code)
+                else:
+                    logger.debug("Domain probe skipped: %s (status %d)", domain, resp.status_code)
+            except Exception as exc:
+                logger.debug("Domain probe failed: %s (%s)", domain, exc)
+
+        if available:
+            self._available_domains = available
+        else:
+            # All probes failed — keep original list as fallback
+            self._available_domains = list(self.domains)
+            logger.debug("All domain probes failed, keeping original list")
 
     def fetch_pdf(self, paper: Paper, output_dir: Path) -> Optional[Path]:
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -212,7 +242,7 @@ class _Downloader:
     def _try_domains(self, query: str, out_path: Path) -> Optional[Path]:
         """Try all configured domains with exponential backoff (up to 3 attempts)."""
         for attempt in range(3):
-            for domain in self.domains:
+            for domain in self._available_domains:
                 try:
                     result = self._try_single(domain, query, out_path, attempt)
                     if result:
@@ -325,9 +355,10 @@ def download(
     output_dir: Path,
     domains: list[str],
     timeout: int = 60,
+    proxy_manager=None,
 ) -> Optional[Path]:
     """Download a paper from Sci-Hub."""
-    dl = _Downloader(domains, timeout)
+    dl = _Downloader(domains, timeout, proxy_manager=proxy_manager)
     try:
         return dl.fetch_pdf(paper, output_dir)
     finally:
