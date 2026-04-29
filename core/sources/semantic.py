@@ -31,6 +31,8 @@ class SemanticSource(BaseSource):
 
         papers = []
         for paper in results:
+            if len(papers) >= max_results:
+                break
             ext_ids = paper.externalIds or {}
             papers.append(Paper(
                 title=paper.title or "",
