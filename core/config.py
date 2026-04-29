@@ -12,11 +12,6 @@ DEFAULT_SCIHUB_DOMAINS = [
 
 DEFAULT_CONFIG = {
     "sources": {
-        "scholar": {
-            "enabled": True,
-            "delay_min": 10,
-            "delay_max": 20,
-        },
         "arxiv": {"enabled": True, "delay_min": 1, "delay_max": 3},
         "semantic": {"enabled": True, "delay_min": 0.5, "delay_max": 1.5, "api_key": None},
     },
@@ -25,7 +20,6 @@ DEFAULT_CONFIG = {
         "scihub_domains": DEFAULT_SCIHUB_DOMAINS.copy(),
         "timeout": 60,
     },
-    "proxy": {"http": None, "https": None, "free_mode": "auto"},
     "storage": {"base_dir": "./papers"},
 }
 

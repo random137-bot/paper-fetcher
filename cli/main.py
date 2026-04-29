@@ -15,8 +15,8 @@ def main():
     p_search = sub.add_parser("search", help="Search for papers by topic")
     p_search.add_argument("--topic", "-t", required=True, help="Search topic")
     p_search.add_argument("--max", "-n", type=int, default=20, help="Max results (default: 20)")
-    p_search.add_argument("--sources", "-s", default="semantic,arxiv,scholar",
-                          help="Comma-separated sources (default: semantic,arxiv,scholar)")
+    p_search.add_argument("--sources", "-s", default="semantic,arxiv",
+                          help="Comma-separated sources (default: semantic,arxiv)")
     p_search.add_argument("--new-topic", action="store_true",
                           help="Force a new topic directory even if a similar one exists")
     p_search.add_argument("--merge-into", type=str, default=None,

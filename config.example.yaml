@@ -1,8 +1,4 @@
 sources:
-  scholar:
-    enabled: true
-    delay_min: 10
-    delay_max: 20
   arxiv:
     enabled: true
     delay_min: 1
@@ -24,11 +20,6 @@ download:
 # Example: https://pypi.tuna.tsinghua.edu.cn/simple
 # When unset or null, pip uses the official PyPI index.
 pip_mirror: null
-
-proxy:
-  http: null
-  https: null
-  free_mode: auto  # auto | on | off — when to use free proxies for Scholar/requests
 
 storage:
   base_dir: ./papers
