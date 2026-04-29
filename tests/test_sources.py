@@ -64,7 +64,6 @@ def test_arxiv_search_error_graceful(mock_client, mock_search):
 
 # --- Semantic Scholar tests (SDK) ---
 
-from unittest.mock import patch, MagicMock
 from semanticscholar.Paper import Paper as S2Paper
 from semanticscholar.Author import Author as S2Author
 
