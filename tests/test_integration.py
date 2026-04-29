@@ -76,7 +76,7 @@ def test_searcher_dedup_pipeline():
     from core.models import Paper
 
     p1 = Paper(title="  Same Paper.", doi="10.0/dup", citations=10, source="arxiv")
-    p2 = Paper(title="Same Paper", doi="10.0/DUP", source="scholar")
+    p2 = Paper(title="Same Paper", doi="10.0/DUP", source="semantic")
     result = deduplicate([p1, p2])
     assert len(result) == 1
     assert result[0].citations == 10

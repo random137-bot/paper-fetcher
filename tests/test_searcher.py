@@ -29,7 +29,7 @@ def test_deduplicate_by_title():
 def test_deduplicate_keeps_distinct():
     p1 = Paper(title="Paper A", source="semantic")
     p2 = Paper(title="Paper B", source="arxiv")
-    p3 = Paper(title="Paper C", source="scholar")
+    p3 = Paper(title="Paper C", source="arxiv")
     result = deduplicate([p1, p2, p3])
     assert len(result) == 3
 
