@@ -14,7 +14,7 @@
 
 ## Features
 
-- **Multi-source search** — queries Semantic Scholar API, arXiv, and Google Scholar simultaneously
+- **Dual-source search** — queries Semantic Scholar API and arXiv simultaneously
 - **Smart dedup** — merges results by DOI + title + author, keeps the richest version
 - **Auto PDF download** — arXiv direct → Sci-Hub multi-domain fallback → direct URL, with exponential backoff
 - **Topic management** — LLM-guided merging groups related searches by technique + application domain
@@ -41,7 +41,8 @@ claude skill add paper-fetcher https://github.com/random137-bot/paper-fetcher.gi
 ```bash
 git clone https://github.com/random137-bot/paper-fetcher.git
 cd paper-fetcher
-python3 skill.py help
+pip install -e .
+papers --help
 ```
 
 ---
@@ -66,19 +67,19 @@ sci-hub download deep learning papers
 
 ```bash
 # Search
-python3 -m cli.main search --topic "transformer attention" --max 30
+papers search --topic "transformer attention" --max 30
 
 # Search with explicit merge into existing topic
-python3 -m cli.main search --topic "医学影像分割" --merge-into medical-image-segmentation
+papers search --topic "医学影像分割" --merge-into medical-image-segmentation
 
 # Search as new topic (skip auto-merge)
-python3 -m cli.main search --topic "reinforcement learning" --new-topic
+papers search --topic "reinforcement learning" --new-topic
 
 # Download all pending papers
-python3 -m cli.main download --topic "federated-learning" --all
+papers download --topic "federated-learning" --all
 
 # List saved topics
-python3 -m cli.main list
+papers list
 ```
 
 ### Skill entry point
@@ -98,20 +99,26 @@ Copy `config.example.yaml` to `config.yaml` and customize:
 
 ```yaml
 sources:
-  scholar:
+  arxiv:
     enabled: true
-    delay_min: 10
-    delay_max: 20
+    delay_min: 1
+    delay_max: 3
   semantic:
     enabled: true
-    api_key: YOUR_SEMANTIC_SCHOLAR_KEY  # Optional, get a free key from Semantic Scholar
+    delay_min: 0.5
+    delay_max: 1.5
+    api_key: null  # Optional: get a free key at https://api.semanticscholar.org
+
 download:
   scihub_domains:
     - https://sci-hub.se
     - https://sci-hub.st
-proxy:
-  http: null
-  https: null
+    - https://sci-hub.ru
+  timeout: 60
+
+# Optional: pip install mirror for faster dependency installation in restricted regions.
+pip_mirror: null
+
 storage:
   base_dir: ./papers
 ```
@@ -130,11 +137,11 @@ core/
 ├── storage.py    ← results.md + papers.json persistence, .index.json index
 ├── models.py     ← Paper & TopicInfo dataclasses
 ├── config.py     ← YAML config with deep-merge defaults
+├── utils.py      ← Slugify and shared utilities
 └── sources/
     ├── base.py      ← Abstract source with rate limiter + retry
     ├── arxiv.py     ← arXiv API client
-    ├── semantic.py  ← Semantic Scholar API client
-    └── scholar.py   ← Google Scholar (via scholarly)
+    └── semantic.py  ← Semantic Scholar API client (via semanticscholar SDK)
 ```
 
 ### Topic merging logic
@@ -173,7 +180,7 @@ papers/
 # Setup
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt  # or let skill.py auto-install
+pip install -e .
 
 # Run tests
 python3 -m pytest tests/ -v

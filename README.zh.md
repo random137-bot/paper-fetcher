@@ -14,7 +14,7 @@
 
 ## 功能
 
-- **多源搜索** — 同时查询 Semantic Scholar API、arXiv 和 Google Scholar
+- **双源搜索** — 同时查询 Semantic Scholar API 和 arXiv
 - **智能去重** — 按 DOI + 标题 + 作者合并，保留信息最全的版本
 - **自动下载 PDF** — arXiv 直连 → Sci-Hub 多域名回退 → 直接 URL，含指数退避重试
 - **主题管理** — LLM 引导的合并策略，相同技术 + 相同应用领域自动归组
@@ -41,12 +41,8 @@ claude skill add paper-fetcher https://github.com/random137-bot/paper-fetcher.gi
 ```bash
 git clone https://github.com/random137-bot/paper-fetcher.git
 cd paper-fetcher
-
-# 安装依赖
 pip install -e .
-
-# 查看帮助
-python3 skill.py help
+papers --help
 ```
 
 ---
@@ -85,11 +81,42 @@ papers list
 ### Skill 入口
 
 ```bash
-# 也支持自然语言
 python3 skill.py 搜索联邦学习论文
 python3 skill.py 下载深度学习
 python3 skill.py list
 python3 skill.py help
+```
+
+---
+
+## 配置
+
+复制 `config.example.yaml` 为 `config.yaml` 并自定义：
+
+```yaml
+sources:
+  arxiv:
+    enabled: true
+    delay_min: 1
+    delay_max: 3
+  semantic:
+    enabled: true
+    delay_min: 0.5
+    delay_max: 1.5
+    api_key: null  # 可选，免费申请：https://api.semanticscholar.org
+
+download:
+  scihub_domains:
+    - https://sci-hub.se
+    - https://sci-hub.st
+    - https://sci-hub.ru
+  timeout: 60
+
+# 可选：使用 PyPI 镜像加速依赖安装（适用于网络受限地区）
+pip_mirror: null
+
+storage:
+  base_dir: ./papers
 ```
 
 ---
@@ -106,11 +133,11 @@ core/
 ├── storage.py    ← results.md + papers.json 持久化，.index.json 索引
 ├── models.py     ← Paper & TopicInfo 数据类
 ├── config.py     ← YAML 配置，含深度合并默认值
+├── utils.py      ← URL slug 化及通用工具
 └── sources/
     ├── base.py      ← 抽象基类，含限速器和重试
     ├── arxiv.py     ← arXiv API 客户端
-    ├── semantic.py  ← Semantic Scholar API 客户端
-    └── scholar.py   ← Google Scholar（通过 scholarly）
+    └── semantic.py  ← Semantic Scholar API 客户端（基于 semanticscholar SDK）
 ```
 
 ### 主题合并逻辑
@@ -139,28 +166,6 @@ papers/
 │   ├── papers.json
 │   └── 2024-03-01 U-Net 医学分割.pdf
 └── ...
-```
-
----
-
-## 配置
-
-复制 `config.example.yaml` 为 `config.yaml` 并自定义：
-
-```yaml
-sources:
-  scholar:
-    enabled: true
-    delay_min: 10
-    delay_max: 20
-  semantic:
-    api_key: YOUR_SEMANTIC_SCHOLAR_KEY  # 可选，免费申请
-download:
-  scihub_domains:
-    - https://sci-hub.se
-    - https://sci-hub.st
-storage:
-  base_dir: ./papers
 ```
 
 ---
