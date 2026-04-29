@@ -2,7 +2,6 @@ from pathlib import Path
 from core.config import load_config
 from core.storage import parse_results, existing_files, slugify, log_error, load_index
 from core.downloader import download, build_filename
-from core.proxy import ProxyManager
 
 
 def _resolve_topic_dir(base_dir: Path, topic_input: str) -> Path | None:
@@ -41,7 +40,6 @@ def _resolve_topic_dir(base_dir: Path, topic_input: str) -> Path | None:
 
 def run(args):
     config = load_config()
-    proxy_mgr = ProxyManager(config)
     base_dir = Path(config["storage"]["base_dir"])
 
     topic_dir = _resolve_topic_dir(base_dir, args.topic)
@@ -99,8 +97,7 @@ def run(args):
     success = 0
     for i, paper in enumerate(selected, 1):
         print(f"[{i}/{len(selected)}] Downloading: {paper.title[:80]}...")
-        result = download(paper, topic_dir, domains=domains, timeout=timeout,
-                          proxy_manager=proxy_mgr)
+        result = download(paper, topic_dir, domains=domains, timeout=timeout)
         if result:
             print(f"  -> Saved: {result.name}")
             success += 1

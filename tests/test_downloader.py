@@ -125,21 +125,6 @@ class TestDomainProbing:
             assert dl._available_domains == ["https://sci-hub.se"]
 
 
-class TestDownloaderProxy:
-    def test_downloader_with_proxy_manager_configures_session(self):
-        from core.proxy import ProxyManager
-        config = {"proxy": {"http": "http://127.0.0.1:8080", "https": None, "free_mode": "off"}}
-        pm = ProxyManager(config)
-        with patch.object(_Downloader, "_probe_domains"):
-            dl = _Downloader(domains=["https://sci-hub.se"], timeout=60, proxy_manager=pm)
-        assert dl.sess.proxies.get("http") == "http://127.0.0.1:8080"
-
-    def test_downloader_without_proxy_manager_backward_compat(self):
-        with patch.object(_Downloader, "_probe_domains"):
-            dl = _Downloader(domains=["https://sci-hub.se"], timeout=60)
-        assert dl.sess.proxies.get("http") is None
-
-
 class TestTryDomainsWithProbing:
     def test_try_domains_uses_available_domains(self):
         with patch.object(_Downloader, "_probe_domains"):

@@ -47,15 +47,13 @@ def build_filename(paper: Paper) -> str:
 class _Downloader:
     """Internal downloader with a persistent session (reused across calls)."""
 
-    def __init__(self, domains: list[str], timeout: int = 60, proxy_manager=None):
+    def __init__(self, domains: list[str], timeout: int = 60):
         if not domains:
             raise ValueError("domains parameter is required")
         self.domains = domains
         self.timeout = timeout
         self.sess = requests.Session()
         self.sess.headers.update({"User-Agent": _USER_AGENT})
-        if proxy_manager:
-            proxy_manager.configure_session(self.sess)
         self._available_domains = list(domains)
         self._probed = False
 
@@ -362,10 +360,9 @@ def download(
     output_dir: Path,
     domains: list[str],
     timeout: int = 60,
-    proxy_manager=None,
 ) -> Optional[Path]:
     """Download a paper from Sci-Hub."""
-    dl = _Downloader(domains, timeout, proxy_manager=proxy_manager)
+    dl = _Downloader(domains, timeout)
     try:
         return dl.fetch_pdf(paper, output_dir)
     finally:

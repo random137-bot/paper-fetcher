@@ -3,14 +3,12 @@ from datetime import datetime
 from core.config import load_config
 from core.searcher import search as core_search
 from core.storage import save_results, slugify, load_index, save_index, parse_results
-from core.proxy import ProxyManager
 from core.merger import find_similar_topic, build_keywords
 from core.models import TopicInfo
 
 
 def run(args):
     config = load_config()
-    proxy_mgr = ProxyManager(config)
     base_dir = Path(config["storage"]["base_dir"])
 
     sources = args.sources.split(",") if args.sources else ["semantic", "arxiv", "scholar"]
@@ -39,8 +37,7 @@ def run(args):
 
     # ── Step 2: search ─────────────────────────────────────────────────────
     print(f"Searching for '{args.topic}' across {', '.join(sources)}...")
-    new_papers = core_search(args.topic, sources=sources, max_results=args.max,
-                             proxy_manager=proxy_mgr)
+    new_papers = core_search(args.topic, sources=sources, max_results=args.max)
     print(f"Found {len(new_papers)} unique results after deduplication.")
 
     if not new_papers:
