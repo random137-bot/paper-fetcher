@@ -16,7 +16,6 @@ DEFAULT_CONFIG = {
             "enabled": True,
             "delay_min": 10,
             "delay_max": 20,
-            "cookie_file": "~/.paper-fetcher/scholar.cookies",
         },
         "arxiv": {"enabled": True, "delay_min": 1, "delay_max": 3},
         "semantic": {"enabled": True, "delay_min": 0.5, "delay_max": 1.5, "api_key": None},
