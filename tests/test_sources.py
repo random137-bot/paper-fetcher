@@ -62,31 +62,46 @@ def test_arxiv_search_error_graceful(mock_client, mock_search):
     assert papers == []
 
 
-# --- Semantic Scholar tests ---
+# --- Semantic Scholar tests (SDK) ---
 
-def _mock_s2_response(data, status=200):
-    r = MagicMock()
-    r.status_code = status
-    r.json.return_value = data
-    r.headers = {}
-    r.raise_for_status = MagicMock()
-    return r
+from unittest.mock import patch, MagicMock
+from semanticscholar.Paper import Paper as S2Paper
+from semanticscholar.Author import Author as S2Author
 
 
-@patch("core.sources.base.requests.get")
-def test_semantic_search_returns_papers(mock_get):
-    mock_get.return_value = _mock_s2_response({
-        "data": [
-            {
-                "title": "Deep Learning Review",
-                "authors": [{"name": "Yann LeCun"}, {"name": "Yoshua Bengio"}],
-                "year": 2015,
-                "externalIds": {"DOI": "10.1038/nature14539"},
-                "citationCount": 50000,
-                "url": "https://api.semanticscholar.org/paper/abc",
-            }
-        ]
-    })
+def _fake_s2_paper(title="Test Paper", authors=None, year=2024,
+                   doi=None, arxiv_id=None, citation_count=0,
+                   paper_id="abc123", url=None, abstract=""):
+    """Build a fake semanticscholar.Paper object."""
+    p = MagicMock(spec=S2Paper)
+    p.title = title
+    p.authors = [S2Author({"authorId": "1", "name": a}) for a in authors] if authors else None
+    p.year = year
+    p.externalIds = {}
+    if doi:
+        p.externalIds["DOI"] = doi
+    if arxiv_id:
+        p.externalIds["ArXiv"] = arxiv_id
+    p.citationCount = citation_count
+    p.paperId = paper_id
+    p.url = url or f"https://api.semanticscholar.org/paper/{paper_id}"
+    p.abstract = abstract
+    return p
+
+
+@patch("core.sources.semantic.SemanticScholar")
+def test_semantic_search_returns_papers(mock_client_cls):
+    mock_client = MagicMock()
+    mock_client.search_paper.return_value = [
+        _fake_s2_paper(
+            title="Deep Learning Review",
+            authors=["Yann LeCun", "Yoshua Bengio"],
+            year=2015,
+            doi="10.1038/nature14539",
+            citation_count=50000,
+        )
+    ]
+    mock_client_cls.return_value = mock_client
 
     source = SemanticSource(delay_min=0, delay_max=0)
     papers = source.search("deep learning", max_results=10)
@@ -97,13 +112,21 @@ def test_semantic_search_returns_papers(mock_get):
     assert papers[0].citations == 50000
     assert papers[0].doi == "10.1038/nature14539"
     assert papers[0].source == "semantic"
+    mock_client.search_paper.assert_called_once_with(
+        "deep learning",
+        limit=10,
+        fields=["title", "authors", "year", "externalIds", "citationCount", "url", "abstract"],
+    )
 
 
-@patch("core.sources.base.requests.get")
-def test_semantic_search_missing_fields(mock_get):
-    mock_get.return_value = _mock_s2_response({
-        "data": [{"title": "Unknown Paper"}]
-    })
+@patch("core.sources.semantic.SemanticScholar")
+def test_semantic_search_missing_fields(mock_client_cls):
+    mock_client = MagicMock()
+    mock_client.search_paper.return_value = [
+        _fake_s2_paper(title="Unknown Paper", authors=None, year=None,
+                       doi=None, citation_count=None, abstract=None, url=None)
+    ]
+    mock_client_cls.return_value = mock_client
 
     source = SemanticSource(delay_min=0, delay_max=0)
     papers = source.search("test", max_results=10)
@@ -112,14 +135,62 @@ def test_semantic_search_missing_fields(mock_get):
     assert papers[0].title == "Unknown Paper"
     assert papers[0].authors == []
     assert papers[0].doi is None
+    assert papers[0].date is None
+    assert papers[0].citations is None
 
 
-@patch("core.sources.base.requests.get")
-def test_semantic_search_error(mock_get):
-    mock_get.side_effect = Exception("Network error")
+@patch("core.sources.semantic.SemanticScholar")
+def test_semantic_search_with_arxiv_id(mock_client_cls):
+    mock_client = MagicMock()
+    mock_client.search_paper.return_value = [
+        _fake_s2_paper(
+            title="ArXiv Paper",
+            authors=["Jones, K."],
+            year=2023,
+            arxiv_id="2301.12345",
+        )
+    ]
+    mock_client_cls.return_value = mock_client
+
+    source = SemanticSource(delay_min=0, delay_max=0)
+    papers = source.search("test", max_results=10)
+
+    assert len(papers) == 1
+    assert papers[0].eprint_url == "https://arxiv.org/abs/2301.12345"
+
+
+@patch("core.sources.semantic.SemanticScholar")
+def test_semantic_search_empty(mock_client_cls):
+    mock_client = MagicMock()
+    mock_client.search_paper.return_value = []
+    mock_client_cls.return_value = mock_client
+
+    source = SemanticSource(delay_min=0, delay_max=0)
+    papers = source.search("nonexistent", max_results=10)
+    assert papers == []
+
+
+@patch("core.sources.semantic.SemanticScholar")
+def test_semantic_search_error(mock_client_cls):
+    mock_client = MagicMock()
+    mock_client.search_paper.side_effect = Exception("API error")
+    mock_client_cls.return_value = mock_client
+
     source = SemanticSource(delay_min=0, delay_max=0)
     papers = source.search("test", max_results=10)
     assert papers == []
+
+
+@patch("core.sources.semantic.SemanticScholar")
+def test_semantic_search_with_api_key(mock_client_cls):
+    mock_client = MagicMock()
+    mock_client.search_paper.return_value = []
+    mock_client_cls.return_value = mock_client
+
+    source = SemanticSource(api_key="test-key-123", delay_min=0, delay_max=0)
+    source.search("test", max_results=10)
+
+    mock_client_cls.assert_called_once_with(api_key="test-key-123")
 
 
 # --- Scholar tests ---
