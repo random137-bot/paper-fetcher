@@ -29,7 +29,7 @@ _REQUIRED_IMPORTS = {
     "pyyaml": "yaml",
     "rapidfuzz": "rapidfuzz",
     "beautifulsoup4": "bs4",
-    "scholarly": "scholarly",
+    "semanticscholar": "semanticscholar",
     "arxiv": "arxiv",
     "questionary": "questionary",
     "rich": "rich",
