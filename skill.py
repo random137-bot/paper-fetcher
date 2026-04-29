@@ -241,7 +241,7 @@ def run_cli(action: str, topic: str | None, extra_args: list[str] | None = None)
         subprocess.run(cmd, cwd=PROJECT_ROOT, env=env, timeout=120)
     except subprocess.TimeoutExpired:
         print(f"[paper-fetcher] Timeout: {action} did not complete within 120 s")
-        print("[paper-fetcher] Tip: Google Scholar is often rate-limited. Try '--sources semantic,arxiv'")
+        print("[paper-fetcher] Tip: The request took too long. Try with fewer sources or check your network.")
 
 
 def main():

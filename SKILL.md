@@ -1,6 +1,6 @@
 ---
 name: paper-fetcher
-description: Search academic papers across Google Scholar, arXiv, and Semantic Scholar, save results to markdown files, and download papers from Sci-Hub. Organizes papers by topic with automatic merge detection.
+description: Search academic papers across arXiv and Semantic Scholar, save results to markdown files, and download papers from Sci-Hub. Organizes papers by topic with automatic merge detection.
 entry:
   script: skill.py
   interpreter: python3
@@ -27,7 +27,7 @@ Search academic papers and download from Sci-Hub.
 - find paper / find papers
 - download paper / download papers
 - sci-hub / scihub
-- academic search / google scholar / arxiv / paper search
+- academic search / arxiv / paper search
 - 搜索论文 / 下载论文 / 论文搜索 / 论文下载
 
 ## Topic Management (LLM-guided merging)
@@ -87,7 +87,7 @@ Papers are saved relative to `PAPER_FETCHER_CWD` / `storage.base_dir`.
 1. Parses natural language input to detect intent (search / download / list)
 2. Dispatches to CLI subcommands via `python3 skill.py` → `cli.main`
 3. Auto-bootstraps venv and dependencies on first run (see Environment below)
-4. Search: queries multiple sources (semantic, arxiv, scholar), deduplicates,
+4. Search: queries multiple sources (semantic, arxiv), deduplicates,
    saves results as markdown + JSON. Before searching, decide merge (see
    Topic Management above).
 5. Download: reads saved results, fetches PDFs from Sci-Hub
@@ -112,7 +112,7 @@ If auto-bootstrapping fails or you prefer to install ahead of time:
 ```bash
 cd /Users/matthewtan/project/python/ccbTest
 python3 -m venv .venv
-.venv/bin/pip install requests pyyaml rapidfuzz beautifulsoup4 scholarly arxiv questionary rich
+.venv/bin/pip install requests pyyaml rapidfuzz beautifulsoup4 semanticscholar arxiv questionary rich
 cp config.example.yaml config.yaml   # if config.yaml doesn't exist
 ```
 
