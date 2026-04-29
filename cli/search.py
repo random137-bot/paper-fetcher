@@ -11,7 +11,7 @@ def run(args):
     config = load_config()
     base_dir = Path(config["storage"]["base_dir"])
 
-    sources = args.sources.split(",") if args.sources else ["semantic", "arxiv", "scholar"]
+    sources = args.sources.split(",") if args.sources else ["semantic", "arxiv"]
 
     # ── Step 1: determine target topic slug ────────────────────────────────
     index = load_index(base_dir)
