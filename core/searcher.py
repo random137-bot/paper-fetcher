@@ -7,14 +7,12 @@ import requests
 from core.models import Paper
 from core.sources.arxiv import ArxivSource
 from core.sources.semantic import SemanticSource
-from core.sources.scholar import ScholarSource
 
 logger = logging.getLogger(__name__)
 
 SOURCE_CLASSES = {
     "arxiv": ArxivSource,
     "semantic": SemanticSource,
-    "scholar": ScholarSource,
 }
 
 
@@ -178,10 +176,9 @@ def _lookup_doi_crossref(title: str, first_author_last: str = "") -> str | None:
     return None
 
 
-def search(topic: str, sources: list[str] | None = None, max_results: int = 20,
-           proxy_manager=None) -> list[Paper]:
+def search(topic: str, sources: list[str] | None = None, max_results: int = 20) -> list[Paper]:
     if sources is None:
-        sources = ["semantic", "arxiv", "scholar"]
+        sources = ["semantic", "arxiv"]
 
     all_papers: list[Paper] = []
     source_stats: dict[str, int] = {}
@@ -202,8 +199,6 @@ def search(topic: str, sources: list[str] | None = None, max_results: int = 20,
                     .get("semantic", {})
                     .get("api_key")
                 )
-            if src_name == "scholar" and proxy_manager:
-                kwargs["proxy_manager"] = proxy_manager
             instance = cls(**kwargs)
             papers = instance.search(topic, max_results=max_results)
             elapsed = time.monotonic() - t0

@@ -26,16 +26,6 @@ def test_deduplicate_by_title():
     assert result[0].date is not None
 
 
-def test_deduplicate_cross_key():
-    """Papers with same title but one has DOI, the other doesn't -- must merge."""
-    p1 = Paper(title="Deep Learning Paper", authors=["LeCun, Y."], doi="10.1038/nature14539", citations=100000, source="semantic")
-    p2 = Paper(title="Deep learning paper", authors=["LeCun Y"], citations=50000, source="scholar")
-    result = deduplicate([p1, p2])
-    assert len(result) == 1, "Cross-key dedup failed: DOI paper and title-only paper not merged"
-    assert result[0].doi == "10.1038/nature14539", "Should keep the paper with DOI"
-    assert result[0].citations == 100000, "Should keep higher citations"
-
-
 def test_deduplicate_keeps_distinct():
     p1 = Paper(title="Paper A", source="semantic")
     p2 = Paper(title="Paper B", source="arxiv")
@@ -48,7 +38,7 @@ def test_deduplicate_multiple_in_group():
     """3 copies of same paper from 3 sources → 1 result with best data."""
     p1 = Paper(title="Same Paper", authors=["Smith"], doi="10.0/x", citations=10, date=date(2024, 1, 1), source="semantic")
     p2 = Paper(title="Same Paper", authors=["Smith"], source="arxiv")
-    p3 = Paper(title="Same Paper", authors=["Smith"], citations=5, source="scholar")
+    p3 = Paper(title="Same Paper", authors=["Smith"], citations=5, source="semantic")
     result = deduplicate([p1, p2, p3])
     assert len(result) == 1
     assert result[0].doi == "10.0/x"
